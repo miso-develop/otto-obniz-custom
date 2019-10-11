@@ -1,0 +1,22 @@
+{
+  "name": "otto-obniz",
+  "version": "0.0.2",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "nodemon --watch dist dist/index.js",
+    "s": "npm run start",
+    "build": "tsc",
+    "b": "npm run build",
+    "watch": "tsc -w",
+    "w": "npm run watch"
+  },
+  "dependencies": {
+    "obniz": ""
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.12",
+    "dotenv": "^8.1.0",
+    "nodemon": "^1.19.3",
+    "typescript": "^3.6.3"
+  }
+}
