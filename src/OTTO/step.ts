@@ -3,7 +3,7 @@ require("dotenv").config()
 
 import Obniz from "obniz"
 import { ServoMotor } from "obniz/parts/Moving/ServoMotor"
-import { Eye, EyeFactory } from "./eye"
+import OTTO from "./"
 import util from "./util"
 
 interface ServoMotors {
@@ -25,22 +25,20 @@ export interface StepInterface {
 }
 
 export class Step implements StepInterface {
-	private readonly msec: number
+	private otto: OTTO
 	private servoMotors: ServoMotors
 	private preAngles: number[] = [0, 0, 0, 0]
-	private eye: Eye = {} as Eye
-		
-	constructor(obniz: Obniz, msec: number) {
-		this.msec = msec
-		
-		const rightLeg =	obniz.wired("ServoMotor", {signal:0, vcc:7, gnd:8})
-		const leftLeg  =	obniz.wired("ServoMotor", {signal:1, vcc:7, gnd:8})
-		const rightFoot =	obniz.wired("ServoMotor", {signal:2, vcc:7, gnd:8})
-		const leftFoot =	obniz.wired("ServoMotor", {signal:3, vcc:7, gnd:8})
+	private readonly msec: number
+	
+	constructor(otto: OTTO, msec = 1000 / 60) {
+		this.otto = otto
+		const rightLeg =	otto.obniz.wired("ServoMotor", { signal: otto.pinAssign.rightLeg,	vcc: otto.pinAssign.vcc, gnd: otto.pinAssign.gnd })
+		const leftLeg  =	otto.obniz.wired("ServoMotor", { signal: otto.pinAssign.leftLeg,	vcc: otto.pinAssign.vcc, gnd: otto.pinAssign.gnd })
+		const rightFoot =	otto.obniz.wired("ServoMotor", { signal: otto.pinAssign.rightFoot,	vcc: otto.pinAssign.vcc, gnd: otto.pinAssign.gnd })
+		const leftFoot =	otto.obniz.wired("ServoMotor", { signal: otto.pinAssign.leftFoot,	vcc: otto.pinAssign.vcc, gnd: otto.pinAssign.gnd })
 		this.servoMotors = { rightLeg, rightFoot, leftLeg, leftFoot }
 		
-		this.eye = EyeFactory.create(obniz)
-		this.eye.temp = 20
+		this.msec = otto.msec
 	}
 	
 	
@@ -52,7 +50,10 @@ export class Step implements StepInterface {
 		
 		for (let i = 0; i < step; i++) {
 			
-			if (direction === Direction.Forward && !this.eye.canForward()) return
+			if (direction === Direction.Forward && !(await this.otto.eye.canForward())) {
+				await this.otto.voice.speak()
+				continue
+			}
 			
 			// right
 			await this.move([0, 0, 0, -1 * footAngle], speed)
@@ -73,7 +74,10 @@ export class Step implements StepInterface {
 		
 		for (let i = 0; i < step; i++) {
 			
-			if (direction === Direction.Forward && !this.eye.canForward()) return
+			if (direction === Direction.Forward && !(await this.otto.eye.canForward())) {
+				await this.otto.voice.speak()
+				continue
+			}
 			
 			// right
 			await this.move([0, 0, 0, -1 * footAngle], speed)
@@ -104,6 +108,14 @@ export class Step implements StepInterface {
 			await this.move([0, 0, 0, 0], speed)
 		}
 		await this.move([0, 0, 0, 0], speed)
+	}
+	
+	public async calibration(): Promise<void> {
+		const angle = 90
+		this.servoMotors.rightLeg.angle(angle)
+		this.servoMotors.leftLeg.angle(angle)
+		this.servoMotors.rightFoot.angle(angle)
+		this.servoMotors.leftFoot.angle(angle)
 	}
 	
 	
@@ -162,11 +174,5 @@ export class Step implements StepInterface {
 			result.push(angles[i] - this.preAngles[i])
 		}
 		return result
-	}
-}
-
-export class StepFactory {
-	public static create(obniz: Obniz, msec = 1000 / 60): Step {
-		return new Step(obniz, msec)
 	}
 }

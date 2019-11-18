@@ -1,15 +1,32 @@
 const log = (...v: any[]) => console.log(...v)
 require("dotenv").config()
-import OTTO from "./otto"
+import Obniz from "obniz"
+import OTTO from "./OTTO/"
 
 ; (async () => {
 	const obnizId = process.env.OBNIZ_ID || ""
+	if (!obnizId) throw new Error("Error: obniz id is invalid!")
+	const obniz: Obniz = new Obniz(obnizId)
+	if (!(await obniz.connectWait({timeout: 3}))) {
+		obniz.close()
+		throw new Error("Error: Failed to connect obniz!")
+	}
 	
-	const action: OTTO.ActionType = "walkForward"
-	const step = 10
+	// `obnizId,wired("OTTO", {rightLeg: 0, leftLeg: 1 ...})`の代わり
+	const otto: OTTO = await new OTTO(obniz, {
+		rightLeg: 0,
+		leftLeg: 1,
+		rightFoot: 2,
+		leftFoot: 3,
+		eyeTrigger: 4,
+		eyeEcho: 5,
+		voice: 6,
+		vcc: 10,
+		gnd: 11
+	})
 	
-	const otto: OTTO = await new OTTO().init(obnizId)
-	await otto[action](step)
+	otto.step.calibration()
+	otto.walkForward(100)
 	
 })()
 

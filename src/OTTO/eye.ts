@@ -3,6 +3,7 @@ require("dotenv").config()
 
 import Obniz from "obniz"
 import { HCSR04 } from "obniz/parts/DistanceSensor/HC-SR04"
+import OTTO from "./"
 import util from "./util"
 
 export interface EyeInterface {
@@ -10,16 +11,27 @@ export interface EyeInterface {
 }
 
 export class Eye implements EyeInterface {
+	private otto: OTTO
 	private hcsr04: HCSR04
-	private _distanceThreshold = 100
-	private _temp = 15
+	private _temp: number
+	private _distanceThreshold: number
 	
-	constructor(obniz: Obniz) {
-		this.hcsr04 = obniz.wired("HC-SR04", {trigger:4, echo:5, vcc:7, gnd:8})
+	constructor(otto: OTTO, temp = 20, distanceThreshold = 100) {
+		this.otto = otto
+		this.hcsr04 = otto.obniz.wired("HC-SR04", {
+			trigger: otto.pinAssign.eyeTrigger,
+			echo: otto.pinAssign.eyeEcho,
+			vcc: otto.pinAssign.vcc,
+			gnd: otto.pinAssign.gnd,
+		})
+		
+		this._temp = temp
+		this._distanceThreshold = distanceThreshold
 	}
 	
 	public async canForward(): Promise<boolean> {
-		return await this.hcsr04.measureWait() > this._distanceThreshold
+		return !!(await this.hcsr04.measureWait() > this._distanceThreshold)
+		// return true // test
 	}
 	
 	set distanceThreshold(distanceThreshold: number) {
@@ -37,11 +49,5 @@ export class Eye implements EyeInterface {
 	
 	get temp(): number {
 		return this._temp
-	}
-}
-
-export class EyeFactory {
-	public static create(obniz: Obniz): Eye {
-		return new Eye(obniz)
 	}
 }
