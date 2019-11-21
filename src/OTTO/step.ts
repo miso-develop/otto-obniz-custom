@@ -1,7 +1,6 @@
 const log = (...v: any[]) => console.log(...v)
 require("dotenv").config()
 
-import Obniz from "obniz"
 import { ServoMotor } from "obniz/parts/Moving/ServoMotor"
 import OTTO from "./"
 import util from "./util"
@@ -30,7 +29,7 @@ export class Step implements StepInterface {
 	private preAngles: number[] = [0, 0, 0, 0]
 	private readonly msec: number
 	
-	constructor(otto: OTTO, msec = 1000 / 60) {
+	constructor(otto: OTTO) {
 		this.otto = otto
 		const rightLeg =	otto.obniz.wired("ServoMotor", { signal: otto.pinAssign.rightLeg,	vcc: otto.pinAssign.vcc, gnd: otto.pinAssign.gnd })
 		const leftLeg  =	otto.obniz.wired("ServoMotor", { signal: otto.pinAssign.leftLeg,	vcc: otto.pinAssign.vcc, gnd: otto.pinAssign.gnd })
@@ -50,8 +49,8 @@ export class Step implements StepInterface {
 		
 		for (let i = 0; i < step; i++) {
 			
-			if (direction === Direction.Forward && !(await this.otto.eye.canForward())) {
-				await this.otto.voice.speak()
+			if (direction === Direction.Forward && !this.otto.eye.canForward) {
+				await this.otto.voice.alert()
 				continue
 			}
 			
@@ -74,8 +73,8 @@ export class Step implements StepInterface {
 		
 		for (let i = 0; i < step; i++) {
 			
-			if (direction === Direction.Forward && !(await this.otto.eye.canForward())) {
-				await this.otto.voice.speak()
+			if (direction === Direction.Forward && !this.otto.eye.canForward) {
+				await this.otto.voice.alert()
 				continue
 			}
 			
@@ -92,7 +91,8 @@ export class Step implements StepInterface {
 	}
 	
 	public async dance(step = 1): Promise<void> {
-		const speed = 200
+		// const speed = 200
+		const speed = 240
 		const footAngle = 45
 		
 		for (let i = 0; i < step; i++) {
@@ -144,7 +144,7 @@ export class Step implements StepInterface {
 	
 	private async setAngles(angles: number[]): Promise<void> {
 		angles = angles.map((angle: number, i: number) => i % 2 ? 90 - angle : 90 + angle)
-		this.checkAngles(angles)
+		this.isCorrectAngles(angles)
 		// console.log(angles)
 		
 		this.servoMotors.rightLeg.angle(angles[0])
@@ -154,7 +154,7 @@ export class Step implements StepInterface {
 		await util.sleep(this.msec)
 	}
 	
-	private checkAngles(angles: number[]): void {
+	private isCorrectAngles(angles: number[]): void {
 		angles.map((angle) => {
 			if (angle < 0 || angle > 180) throw new Error("Error: Angle range over!")
 		})

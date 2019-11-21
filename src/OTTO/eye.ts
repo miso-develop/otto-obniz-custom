@@ -1,13 +1,11 @@
 const log = (...v: any[]) => console.log(...v)
 require("dotenv").config()
 
-import Obniz from "obniz"
 import { HCSR04 } from "obniz/parts/DistanceSensor/HC-SR04"
 import OTTO from "./"
 import util from "./util"
 
 export interface EyeInterface {
-	canForward(): Promise<boolean>
 }
 
 export class Eye implements EyeInterface {
@@ -15,6 +13,7 @@ export class Eye implements EyeInterface {
 	private hcsr04: HCSR04
 	private _temp: number
 	private _distanceThreshold: number
+	private _canForward: boolean = true
 	
 	constructor(otto: OTTO, temp = 20, distanceThreshold = 100) {
 		this.otto = otto
@@ -27,11 +26,20 @@ export class Eye implements EyeInterface {
 		
 		this._temp = temp
 		this._distanceThreshold = distanceThreshold
+		
+		// TODO:
+		// this.canForwardLoop()
 	}
 	
-	public async canForward(): Promise<boolean> {
-		return !!(await this.hcsr04.measureWait() > this._distanceThreshold)
-		// return true // test
+	private async canForwardLoop(): Promise<void> {
+		while (true) {
+			this._canForward = !!(await this.hcsr04.measureWait() > this._distanceThreshold)
+			await util.sleep(100)
+		}
+	}
+	
+	get canForward(): boolean {
+		return this._canForward
 	}
 	
 	set distanceThreshold(distanceThreshold: number) {
@@ -51,3 +59,5 @@ export class Eye implements EyeInterface {
 		return this._temp
 	}
 }
+
+export default Eye
